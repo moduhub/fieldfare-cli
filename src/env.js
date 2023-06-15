@@ -570,7 +570,7 @@ export async function main(args) {
     const options = parseArgumentsIntoOptions(args);
     logger.disable();
     try {
-        await init;
+        await init();
         env = await setupEnvironment();
         const envWebports = await env.localCopy.getElement('webports');
         if(!envWebports) {
