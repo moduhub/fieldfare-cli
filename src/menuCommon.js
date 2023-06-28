@@ -54,12 +54,12 @@ export const inputWebport = [
         message: "Enter port number: ",
         validate(value) {
 
-            if (value > 1023
+            if (value > 0
             && value < 65536) {
                 return true;
             }
 
-            return 'Please enter a number between 1023 and 65536';
+            return 'Please enter a number between 0 and 65536';
         }
     }
 ];
