@@ -161,8 +161,8 @@ async function adminsMenu() {
     const envAdmins = await env.localCopy.getElement('admins');
     if(envAdmins) {
         for await (const chunk of envAdmins) {
-            const adminID = HostIdentifier.fromChunkIdentifier(chunk.id);
-            adminArray.push(adminID);
+            const {id} = await chunk.expand(0);
+            adminArray.push(id);
         }
     }
     if(adminArray.length > 0) {
@@ -340,7 +340,8 @@ async function providersMenu(serviceUUID) {
     const providers = await env.localCopy.getElement(serviceUUID+'.providers');
     if(providers) {
         for await(const providerChunk of providers) {
-            providersArray.push(HostIdentifier.fromChunkIdentifier(providerChunk.id));
+            const {id} = await providerChunk.expand(0);
+            providersArray.push(id);
         }
     }
     if(providersArray.length > 0) {
