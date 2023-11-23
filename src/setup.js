@@ -26,7 +26,6 @@ async function environmentMenu() {
       message: 'Choose one action: ',
       choices: ['Set Environment UUID', 'Back'],
     };
-
     console.log("__________ Environment Configuration __________");
     console.log("| Current Environment UUID: " + await actions.getEnvironmentUUID());
 
@@ -34,13 +33,11 @@ async function environmentMenu() {
 
     switch(answer.action) {
         case 'Set Environment UUID': {
-
             const {confirm} = await inquirer.prompt({
                 type: 'confirm',
                 name: 'confirm',
                 message: "Are you sure you want to drop previous UUID?"
             });
-
             if(confirm) {
                 const answer = await inquirer.prompt(inputUUID);
                 if(answer.uuid !== '')  {
@@ -49,11 +46,9 @@ async function environmentMenu() {
             }
             environmentMenu();
         } break;
-
         case 'Generate Random UUID': {
             environmentMenu();
         } break;
-
         default:
             mainMenu();
     }
@@ -94,8 +89,7 @@ async function implementationsMenu() {
                   type: 'file-tree-selection',
                   name: 'file'
                 }
-              ]
-            );
+            ]);
             const fullpath = path.normalize(fileChoice.file);
             try {
                 const newImplentation = await actions.validateServiceImplementation(fullpath);
