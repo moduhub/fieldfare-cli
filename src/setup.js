@@ -24,14 +24,32 @@ async function environmentMenu() {
       type: 'list',
       name: 'action',
       message: 'Choose one action: ',
-      choices: ['Set Environment UUID', 'Back'],
+      choices: ['Environment Implementation', 'Set Environment UUID', 'Back'],
     };
     console.log("__________ Environment Configuration __________");
     console.log("| Current Environment UUID: " + await actions.getEnvironmentUUID());
-
+    console.log("| Environment class: " + (await actions.getEnvironmentClass()).name);
+    console.log("____________________ ...");
     const answer = await inquirer.prompt(prompt);
-
     switch(answer.action) {
+        case 'Environment Implementation': {
+            inquirer.registerPrompt('file-tree-selection', inquirerFileTreeSelection);
+            const fileChoice = await inquirer.prompt([
+                {
+                  type: 'file-tree-selection',
+                  name: 'file'
+                }
+              ]
+            );
+            const fullpath = path.normalize(fileChoice.file);
+            try {
+                await actions.validateEnvironmentImplementation(fullpath);
+                await actions.setEnvironmentClassPath(fullpath);
+            } catch (error) {
+                console.log(chalk.red("Failed to set environment implementation: " + error.stack));
+            }
+            environmentMenu();
+        } break;
         case 'Set Environment UUID': {
             const {confirm} = await inquirer.prompt({
                 type: 'confirm',

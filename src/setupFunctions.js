@@ -6,6 +6,7 @@
  */
 
 import {
+    Environment,
     LocalService,
     ChunkingUtils,
     NVD,
@@ -58,6 +59,29 @@ export async function getServiceImplementations() {
         }
     }
     return implementations;
+}
+
+export async function validateEnvironmentImplementation(filepath) {
+    const {EnvironmentClass} = await import('file:' + filepath);
+    if(EnvironmentClass === undefined
+    || EnvironmentClass === null
+    || EnvironmentClass.prototype instanceof Environment === false) {
+        throw Error('invalid environment class');
+    }
+    return EnvironmentClass;
+}
+
+export async function setEnvironmentClassPath(filepath) {
+    await NVD.save('envClassPath', filepath);
+}
+
+export async function getEnvironmentClass() {
+    const filepath = await NVD.load('envClassPath');
+    if(filepath === undefined) {
+        return Environment;
+    }
+    const {EnvironmentClass} = await import('file:' + filepath);
+    return EnvironmentClass;
 }
 
 export async function validateServiceImplementation(filepath) {
