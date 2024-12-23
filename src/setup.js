@@ -17,6 +17,7 @@ import {
     inputIndexBetween
 } from './menuCommon.js';
 import { cryptoManager, logger } from '@fieldfare/core';
+import arg from 'arg';
 
 async function environmentMenu() {
 
@@ -308,8 +309,50 @@ function mainMenu() {
     });
 }
 
+function parseArgumentsIntoOptions(rawArgs) {
+    const args = arg(
+    {
+        '--envuuid': String,
+        '-n':Boolean,
+        '-l':Boolean,
+        '-s':Boolean,
+        '-v':Boolean
+    },
+    {
+        argv: rawArgs.slice(2),
+    }
+    );
+
+    return {
+        envuuid: args['--envuuid'] || null,
+        new: args['-n'] || false,
+        list: args['-l'] || false,
+        set: args['-s'] || false,
+        verbose: args['-v'] || false
+    };
+}
+
 export async function main(args) {
     logger.disable();
     await actions.init();
-    mainMenu();
+    if(args.length < 3) {
+        mainMenu();
+    } else {
+        const options = parseArgumentsIntoOptions(args);
+        console.log(options);
+        if(options.new) {
+            await cryptoManager.generateLocalKeypair();
+            if(options.verbose) console.log("New Host ID: " + await actions.getLocalHostID());
+        } else if (options.list) {
+            console.log("Current Host ID: " + await actions.getLocalHostID());
+            console.log("Current Environment UUID: " + await actions.getEnvironmentUUID());
+        } else if(options.set) {
+            if(options.envuuid) {
+                if(options.verbose) console.log("Setting new Environment UUID: " + options.envuuid);
+                await actions.setEnvironmentUUID(options.envuuid);
+            }
+        } else {
+            console.log("Invalid arguments");
+        }
+    }
 }
