@@ -16,7 +16,7 @@ import {
     inputUUID,
     inputIndexBetween
 } from './menuCommon.js';
-import { cryptoManager, logger } from '@fieldfare/core';
+import { cryptoManager, logger, Utils } from '@fieldfare/core';
 import arg from 'arg';
 
 async function environmentMenu() {
@@ -313,8 +313,16 @@ function parseArgumentsIntoOptions(rawArgs) {
     const args = arg(
     {
         '--envuuid': String,
-        '-n':Boolean,
+        '--envclass': String,
+        '--serviceclass': String,
+        '--protocol':String,
+        '--address':String,
+        '--port':String,
+        '--hostid':String,
         '-l':Boolean,
+        '-a':Boolean,
+        '-b':Boolean,
+        '-n':Boolean,
         '-s':Boolean,
         '-v':Boolean
     },
@@ -325,9 +333,17 @@ function parseArgumentsIntoOptions(rawArgs) {
 
     return {
         envuuid: args['--envuuid'] || null,
-        new: args['-n'] || false,
+        envclass: args['--envclass'] || null,
+        serviceclass: args['--serviceclass'] || null,
+        protocol: args['--protocol'] || null,
+        address: args['--address'] || null,
+        port: args['--port'] || null,
+        hostid: args['--hostid'] || null,
         list: args['-l'] || false,
+        new: args['-n'] || false,
+        add: args['-a'] || false,
         set: args['-s'] || false,
+        bootwebport: args['-b'] || false,
         verbose: args['-v'] || false
     };
 }
@@ -339,17 +355,81 @@ export async function main(args) {
         mainMenu();
     } else {
         const options = parseArgumentsIntoOptions(args);
-        console.log(options);
-        if(options.new) {
+        // console.log(options);
+        if(options.new) { // NEW
             await cryptoManager.generateLocalKeypair();
             if(options.verbose) console.log("New Host ID: " + await actions.getLocalHostID());
-        } else if (options.list) {
+        } else if (options.list) { //LIST
             console.log("Current Host ID: " + await actions.getLocalHostID());
             console.log("Current Environment UUID: " + await actions.getEnvironmentUUID());
-        } else if(options.set) {
+            console.log("Current Environment Class: " + (await actions.getEnvironmentClass()).name);
+            if(options.verbose) {
+                console.log("Local Service Implementations:");
+                const implementations = await actions.getServiceImplementations();
+                if(implementations && implementations.length > 0) {
+                    for(const implementation of implementations) {
+                        console.log(JSON.stringify(implementation, null, 2));
+                    }
+                } else {
+                    console.log(" <No implementations registered>");
+                }
+                console.log("Boot Webports:");
+                const webports = await actions.getBootWebports();
+                if(webports) {
+                    for(const webport of webports) {
+                        console.table(JSON.stringify(webport, null, 2));
+                    }
+                } else {
+                    console.log(" <No boot webports defined>");
+                }
+            }
+        } else if(options.set) { //SET
             if(options.envuuid) {
                 if(options.verbose) console.log("Setting new Environment UUID: " + options.envuuid);
                 await actions.setEnvironmentUUID(options.envuuid);
+            }
+            if(options.envclass) {
+                const fullpath = path.normalize(path.resolve(options.envclass));
+                    try {
+                        await actions.validateEnvironmentImplementation(fullpath);
+                        if(options.verbose) console.log("Setting new Environment Class: " + fullpath);
+                        await actions.setEnvironmentClassPath(fullpath);
+                    } catch (error) {
+                        console.log(chalk.red("Failed to set environment implementation: " + error.stack));
+                    }
+            }
+        } else if(options.add) {
+            if(options.serviceclass) {
+                const fullpath = path.normalize(path.resolve(options.serviceclass));
+                try {
+                    const newImplentation = await actions.validateServiceImplementation(fullpath);
+                    if(options.verbose) console.log('New service UUID: ' + newImplentation.uuid);
+                    await actions.addServiceImplementation(fullpath);
+                } catch (error) {
+                    if(options.verbose) console.log(chalk.red("Failed to add new implementation: " + error.stack));
+                }
+            }
+            if(options.bootwebport) {
+                if(options.protocol && options.address && options.port) {
+                    if(options.protocol === 'udp' || options.protocol === 'ws') {
+                        if(Utils.isIPV4(options.address)) {
+                            if(options.port > 0 && options.port < 65536) {
+                                const webport = {protocol: options.protocol, address: options.address, port: options.port};
+                                if(options.verbose) console.log('Adding new boot webport: ' + JSON.stringify(2, null, webport));
+                                await actions.addBootWebport(webport);
+                            } else {
+                                console.log("Invalid port number");
+                            }
+                        } else {
+                            console.log("Invalid IPv4 address");
+                        }
+                    } else {
+                        console.log("Invalid protocol");
+                    }
+
+                } else {
+                    console.log("Missing arguments: protocol, address or port");
+                }
             }
         } else {
             console.log("Invalid arguments");
